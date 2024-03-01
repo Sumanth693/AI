@@ -1,0 +1,78 @@
+import heapq
+
+class PuzzleState:
+    def __init__(self, board, parent=None, move="Initial"):
+        self.board = board
+        self.parent = parent
+        self.move = move
+        if self.parent:
+            self.depth = self.parent.depth + 1
+        else:
+            self.depth = 0
+        self.score = self.get_score()
+        
+    def __lt__(self, other):
+        return self.score < other.score
+    
+    def get_score(self):
+        return self.depth + self.h_score()
+
+    def h_score(self):
+        score = 0
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] != 0:
+                    goal_row = (self.board[i][j] - 1) // 3
+                    goal_col = (self.board[i][j] - 1) % 3
+                    score += abs(i - goal_row) + abs(j - goal_col)
+        return score
+
+    def get_neighbors(self):
+        neighbors = []
+        zero_row, zero_col = self.find_zero()
+        for dr, dc, move in [(0, 1, "left"), (0, -1, "right"), (1, 0, "up"), (-1, 0, "down")]:
+            new_row, new_col = zero_row + dr, zero_col + dc
+            if 0 <= new_row < 3 and 0 <= new_col < 3:
+                new_board = [row[:] for row in self.board]
+                new_board[zero_row][zero_col], new_board[new_row][new_col] = new_board[new_row][new_col], 0
+                neighbors.append(PuzzleState(new_board, self, move))
+        return neighbors
+
+    def find_zero(self):
+        for i in range(3):
+            for j in range(3):
+                if self.board[i][j] == 0:
+                    return i, j
+
+    def __str__(self):
+        return "\n".join([" ".join(map(str, row)) for row in self.board]) + "\n"
+
+def solve_puzzle(initial_state):
+    frontier = []
+    heapq.heappush(frontier, initial_state)
+    explored = set()
+    
+    while frontier:
+        state = heapq.heappop(frontier)
+        if state.board == [[1, 2, 3], [4, 5, 6], [7,8,0]]:
+            return state
+        explored.add(str(state))
+        
+        for neighbor in state.get_neighbors():
+            if str(neighbor) not in explored:
+                heapq.heappush(frontier, neighbor)
+                
+    return None
+
+initial_board = [[1, 2, 3], [4, 5, 6], [0,7,8]]
+initial_state = PuzzleState(initial_board)
+solution = solve_puzzle(initial_state)
+
+if solution:
+    print("Solution found in", solution.depth, "steps:")
+    current = solution
+    while current:
+        print(current)
+        current = current.parent
+else:
+    print("No solution found.")
